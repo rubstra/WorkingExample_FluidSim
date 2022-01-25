@@ -52,9 +52,6 @@ function [divergence, fluidPixels] = simulation( ...
     display('Simulating...');
     
     
-                % quality measures
-        divergence = zeros(1, frames - 1);
-        fluidPixels = zeros(1, frames - 1);
     
     % save start condition
     frame = calcFrame(visualSettings,...
@@ -65,7 +62,9 @@ function [divergence, fluidPixels] = simulation( ...
                   
     saveImage(frame, 0, visualSettings.outputFolder);
         
-    
+     % Create matrices
+     divergence = zeros(1, frames - 1);
+     fluidPixels = zeros(1, frames - 1);
         
     % delete velocities in obstacles (set obstacle velocity = 0). 
     % The built-in Matlab function repmat is utilized here. obstacle must 
