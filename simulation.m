@@ -52,6 +52,10 @@ function [divergence, fluidPixels] = simulation( ...
     display('Simulating...');
     
     
+                % quality measures
+        divergence = zeros(1, frames - 1);
+        fluidPixels = zeros(1, frames - 1);
+    
     % save start condition
     frame = calcFrame(visualSettings,...
                       distanceField, ...
@@ -111,13 +115,10 @@ function [divergence, fluidPixels] = simulation( ...
             distanceField = reinitDistances(distanceField, obstacle);
         end
 
+        
         [frame, fluidPixels(i)] = calcFrame(visualSettings, distanceField, ...
             obstacle, velocityField, pressureField);
         saveImage(frame, i, visualSettings.outputFolder);
-        
-        % quality measures
-        divergence = zeros(1, frames - 1);
-        fluidPixels = zeros(1, frames - 1);
         
         % store overall divergence (should be 0 after perfect pressure solving)
         waterBody = (distanceField>=0);
