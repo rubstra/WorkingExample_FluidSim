@@ -58,7 +58,7 @@ cellsize = domainsizeXdir/xCells;
 
 
 % GENERAL %
-simulationtime = 1; %s
+simulationtime = 0.1; %s
 fps = 120; %frames per second
 frames = simulationtime*fps; %total number of frames
 timestep = 1/fps; %(1 / frames per second) = seconds per frame = timestep
@@ -91,6 +91,7 @@ disp(['Start simulation at: ', datestr(now)]);
     dissipation,...
     visualSettings );
 disp(['Finish simulation at: ', datestr(now)]);
+
 
 
 %% Save and display runtime data %%
