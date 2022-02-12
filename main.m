@@ -58,7 +58,7 @@ cellsize = domainsizeXdir/xCells;
 
 
 % GENERAL %
-simulationtime = 0.1; %s
+simulationtime = 10; %s
 fps = 120; %frames per second
 frames = simulationtime*fps; %total number of frames
 timestep = 1/fps; %(1 / frames per second) = seconds per frame = timestep
