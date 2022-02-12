@@ -1,14 +1,36 @@
 function [ pressure ] = solvePressure( xCells,yCells, velocity, distanceField, obstacle )
-%SOLVEPRESSURE Apply pressure solver with finite elements method
-%   return pressure: matrix(yNodes, xNodes)
-%   simulationSettings: struct with these fields:
-%       cellSize: grid cell size in m
-%   velocity: matrix(yNodes, xNodes, dim)
-%   distanceField: matrix(yNodes, xNodes)
-%   obstacle: boolean matrix(yNodes, xNodes)
+%SOLVEPRESSURE Apply pressure solver with finite elements method on 
+%   first order quadrilateral elements, squares or rectangles depending on 
+%   cell sizes.
+%   
+%   
+%   For more information on the solver and finite elements methods a
+%   recommended book isThe Finite Element Method: Theory, Implementation,
+%   and Applications by Larson and Bengzon. The book contain several minor
+%   errors in the examples, but explain the theory in a very understandable
+%   manner.
+%
+%   OUTPUT: pressure matrix (yNodes, xNodes) containing the pressure at 
+%           each node, solved by the finite element method
+%
+%    INPUT: DistanceField: A matrix with indices representing nodes(yNodes, 
+%           xNodes). The nodal values denote the distances to interfaces, see
+%           further descriptions in loadscenario or other.
 
-    %% initialization
-    % using y,x only when accessing matrizes from caller, internal is x,y
+%           Velocity: velocity field matrix(yNodes, xNodes,[dim]), velocity 
+%           of fluid in m/s at the nodes.
+%
+%           Obstacle: Boolean matrix, obstacles are represented with
+%           1's, these are domain borders and obstructions
+
+
+%%%%%%%%%%%%%%%%%%%%   
+%% initialization %%
+%%%%%%%%%%%%%%%%%%%%
+
+
+% Note that we use y,x only when accessing matrizes from caller, internal 
+% is x,y
     numCellsX = xCells;
     numCellsY = yCells;
     
@@ -24,6 +46,7 @@ function [ pressure ] = solvePressure( xCells,yCells, velocity, distanceField, o
     zeta = s(:, 1);
     eta = s(:, 2);
 
+    % Allocating matrices
     % sparse matrix constructor parameters
     Kx = [];
     Ky = [];
@@ -33,33 +56,57 @@ function [ pressure ] = solvePressure( xCells,yCells, velocity, distanceField, o
     fx = [];
     fval = [];
     
-    % get fluid cells and interface nodes
+    % Get fluid cells and interface nodes
+    % Convert a distance field, based on nodes, to a boolean matrix of 
+    % cells. See getFluidCells for further description
     fluidCells = getFluidCells(distanceField);
+    % See getInterfaceNodes for further description
     interfaceNodes = getInterfaceNodes(distanceField, obstacle, true);
     
+    %Defining and allocating 
     nodeIndex = 0;
     nodeCoordToIndex = zeros(size(distanceField, 1), size(distanceField, 2));
     nodeIndexToCoord = zeros(size(distanceField, 1) * size(distanceField, 2), 2);
+    
+    % if we have a cell corresponding to 2,2 (row, column) then the node
+    % offset would give the nodes surrounding that cell. Take the first row
+    % vector 0 0 and add by elements to 2 2 it equals 2 2. Then node 2 2 is
+    % the upper left node in the cell. Likewise 1,1 result in node 3,3
+    % which is the bottom right node of the cell. The offsets refer to a
+    % real coordinate system, not the matrix elements
     nodeOffsets = [0 0; 0 1; 1 1; 1 0];
     
-    %% pressure solving
-    % for each cell
+    
+    
+    %%%%%%%%%%%%%%%%%%%%%%
+    %% pressure solving %%
+    %%%%%%%%%%%%%%%%%%%%%%
+    
+    
+    % for each cell in y-dir
     for cellY = 1 : numCellsY 
+        % for each cell in x-dir
         for cellX = 1 : numCellsX
             % surrounded by 4 nodes
             % skip cells without water
             if ~fluidCells(cellY, cellX)
                 continue;
             end
+            
+            %coordinates for the current iteration
             currentCoord = [cellX cellY];
             
+            %Allocating/defining vectors
             wTildeEX = [0; 0; 0; 0];
             wTildeEY = [0; 0; 0; 0];
             
             % gather all information for cell
-            for corner = 1 : 4
+            for corner = 1 : 4 % run onces per corner/node of the cell
+                % gives corner coordinates, see nodeOffsets described above
                 cornerCoord = currentCoord + nodeOffsets(corner, :);
                 
+                % Temporarily store nodal x and y components of velocity in
+                % respective vectors
                 wTildeEX(corner) = velocityFieldX(cornerCoord(2), cornerCoord(1));
                 wTildeEY(corner) = velocityFieldY(cornerCoord(2), cornerCoord(1));
                 
