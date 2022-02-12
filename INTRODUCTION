@@ -1,0 +1,60 @@
+
+ Herein you can find the main matrices described, as well as the main simualtion procedure.
+
+PRESSUREFIELD (nodes, 1 matrix)
+matrix(yNodes, xNodes), pressure at each node,
+%       initially given as 0.
+
+    pressureField = zeros(yNodes, xNodes);
+
+VELOCITYFIELD (nodes, 2 matrices)
+matrix(yNodes, xNodes,[dim]), velocity of fluid 
+%       in m/s. Two matrices, representing x and y direction. Initial velocity given as 0.5 in the vertical.
+
+velocityField(1 : yNodes, 1 : xNodes, 2) = 0.5;
+
+FORCEFIELD (nodes, 2 matrices)
+bodyforce matrix(yNodes, xNodes, [dim]), force applied to fluid in m/s^2, due to gravitational acceleration
+
+   forceField = zeros(yNodes, xNodes, 2);
+
+DISTANCEFIELD (nodes, 1 matrix)
+A matrix with indices representing nodes(yNodes, xNodes). The nodal values denote the distances to interfaces. Negative values are nodes containing air, and the value represent the nearest node with water. Positive values are nodes with water and value represent nearest node with air.
+
+    distanceField = zeros(size(fluidNodes));
+    distancesToWater = (bwdist(fluidNodes) - 0.5) .* -1;
+
+ 
+STEP 1 – APPLY FORCES
+velocityField = velocityField + forceField * timestep;
+
+STEP 2 – DELETE VELOCITITES IN OBSTACLES
+delete velocities in obstacles, caused by step 1.
+velocityField(repmat(obstacle, [1 1 2])) = 0;
+
+STEP 3 – CALCULATE PRESSUREFIELD
+Calculate pressure to with finite element
+pressureField = solvePressureISO(xCells, yCells, velocityField, distanceField, obstacle);
+
+STEP 4 – APPLY PRESSURE CORRECTION
+Apply correction to keep the flow divergence free, that is, keep as much water volume as possible. Apparently the gradient is subtracted directly from the velocity, however underlying assumptions of density involves multiplying the gradient with unity, to change the units, but not the value. Therefore, consider the gradient term to be a velocity correction.
+
+gradient = calcGradient(pressureField, obstacle );
+velocityField = velocityField - gradient; 
+
+STEP 5 – CORRECT AIR-VELOCITIES
+This function correct velocities in the air. It copies the value from the nearest fluid cell. The path to the fluid cell cannot go through a solid node.
+
+velocityField = setAirVelocity(velocityField, distanceField, obstacle);
+
+STEP 6 – ADVECT DENSITY AND VELOCITY
+Apply Semi-Lagrangian advection, by use of the velocityfield, on source data.
+
+Advect distancefield
+distanceField = advectSemiLagrange(cellsize, timestep, dissipation, velocityField, distanceField);
+Advect velocity
+velocityField = advectSemiLagrange(cellsize, timestep, dissipation, velocityField, velocityField);
+
+STEP 7 - SAVE FRAME
+
+Frames are combined to form the final video.
